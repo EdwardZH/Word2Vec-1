@@ -63,28 +63,24 @@ def main(_):
     rev_vocab = data_utils.prepare(data_path, FLAGS.min_occurrence, FLAGS.max_vocab, FLAGS.remove_oov, FLAGS.train_file)
     vocab_size = len(rev_vocab)
 
-    graph = tf.Graph()
-    with graph.as_default():
-        q_inputs = tf.placeholder(tf.int32, shape=(FLAGS.batch_size * FLAGS.window_size * 2))
-        q_labels = tf.placeholder(tf.int32, shape=(FLAGS.batch_size * FLAGS.window_size * 2, 1))
-        q = tf.FIFOQueue(50, [tf.int32, tf.int32], shapes=[[FLAGS.batch_size * FLAGS.window_size * 2],
-                                                           [FLAGS.batch_size * FLAGS.window_size * 2, 1]])
-        close_op = q.close()
-        enqueue_op = q.enqueue([q_inputs, q_labels])
-        inputs, labels = q.dequeue()
+    q_inputs = tf.placeholder(tf.int32, shape=(FLAGS.batch_size * FLAGS.window_size * 2))
+    q_labels = tf.placeholder(tf.int32, shape=(FLAGS.batch_size * FLAGS.window_size * 2, 1))
+    q = tf.FIFOQueue(50, [tf.int32, tf.int32])
+    close_op = q.close()
+    enqueue_op = q.enqueue([q_inputs, q_labels])
+    inputs, labels = q.dequeue()
+    embeddings = tf.Variable(tf.random_uniform([vocab_size, FLAGS.embedding_size], -1.0, 1.0))
+    input_embeddings = tf.nn.embedding_lookup(embeddings, inputs)
+    nce_weights = tf.Variable(tf.random_uniform([vocab_size, FLAGS.embedding_size], -1.0, 1.0))
+    nce_biases = tf.Variable(tf.zeros([vocab_size]))
+    nce_loss = tf.nn.nce_loss(nce_weights, nce_biases, input_embeddings, labels, FLAGS.num_neg_samples, vocab_size)
+    loss = tf.reduce_mean(nce_loss)
+    learning_rate = tf.Variable(FLAGS.learning_rate, trainable=False)
+    train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+    norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
+    normalized_embeddings = embeddings / norm
 
-        embeddings = tf.Variable(tf.random_uniform([vocab_size, FLAGS.embedding_size], -1.0, 1.0))
-        input_embeddings = tf.nn.embedding_lookup(embeddings, inputs)
-        nce_weights = tf.Variable(tf.random_uniform([vocab_size, FLAGS.embedding_size], -1.0, 1.0))
-        nce_biases = tf.Variable(tf.zeros([vocab_size]))
-        nce_loss = tf.nn.nce_loss(nce_weights, nce_biases, input_embeddings, labels, FLAGS.num_neg_samples, vocab_size)
-        loss = tf.reduce_mean(nce_loss)
-        learning_rate = tf.Variable(FLAGS.learning_rate, trainable=False)
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
-        norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
-        normalized_embeddings = embeddings / norm
-
-    with tf.Session(graph=graph) as session:
+    with tf.Session() as session:
         session.run(tf.global_variables_initializer())
         thread = threading.Thread(target=load, args=(session, data_path, close_op, enqueue_op, q_inputs, q_labels))
         thread.isDaemon()
@@ -107,10 +103,10 @@ def main(_):
                     batch = 0
 
                 batch += 1
-                avg_loss += session.run([optimizer, loss])[1]
-                if batch % 100 == 0:
+                avg_loss += session.run([train_op, loss])[1]
+                if batch % 1000 == 0:
                     current = time.time()
-                    avg_loss /= 100
+                    avg_loss /= 1000
                     rate = 0.001 * batch * FLAGS.batch_size / (current - start)
                     print("epoch: %d  batch: %d  loss: %.2f  words/sec: %.2fk" % (epoch, batch, avg_loss, rate))
                     avg_loss = 0
