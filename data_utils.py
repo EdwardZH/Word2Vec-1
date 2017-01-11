@@ -169,4 +169,4 @@ def prepare(data_path, min_vocab_occurrence, max_vocab_size, remove_oov, corpus_
     create_vocabulary(corpus_path, clean_path, vocab_path, min_vocab_occurrence, max_vocab_size, remove_oov)
     vocab, rev_vocab = initialise_vocabulary(vocab_path)
     words_to_tokens(vocab, clean_path, token_path, remove_oov)
-    return rev_vocab
+    return vocab, rev_vocab
