@@ -170,8 +170,3 @@ def prepare(data_path, min_vocab_occurrence, max_vocab_size, remove_oov, corpus_
     vocab, rev_vocab = initialise_vocabulary(vocab_path)
     words_to_tokens(vocab, clean_path, token_path, remove_oov)
     return rev_vocab
-
-
-def iterator(data_path, batch_size, window_size):
-    token_path = os.path.join(data_path, "tokens.bin")
-    return iter(Iterator(token_path, batch_size, window_size))
