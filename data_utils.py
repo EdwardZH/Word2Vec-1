@@ -108,21 +108,21 @@ def create_vocabulary(corpus_path, clean_path, vocab_path, min_occurrence, max_s
                 if _NUM in vocab:
                     del vocab[_NUM]
                 reduce_vocab(vocab, min_occurrence)
-                print("finalising vocabulary")
+                print("finalising vocab")
                 if remove_oov:
                     vocab_list = sorted(vocab, key=vocab.get, reverse=True)
                 else:
                     vocab_list = _START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
                 if len(vocab_list) > max_size:
                     vocab_list = vocab_list[:max_size]
-                print("writing vocabulary to file")
+                print("writing vocab to file")
                 with open(vocab_path, 'w') as vocab_file:
                     for w in vocab_list:
                         vocab_file.write(w + "\n")
 
 
 def reduce_vocab(vocab, threshold):
-    print("reducing vocabulary")
+    print("reducing vocab")
     for k, v in list(vocab.items()):
         if v < threshold:
             del vocab[k]

@@ -22,7 +22,7 @@ flags.DEFINE_float("learning_rate", 1.0, "Initial learning rate.")
 flags.DEFINE_string("save_path", "model.ckpt", "Base name of checkpoint files.")
 flags.DEFINE_string("train_file", "corpus.txt", "Name of the training data file.")
 flags.DEFINE_boolean("plot", True, "Set to true to plot example pca graph after training.")
-flags.DEFINE_boolean("query", False, "Set to true to bypass training and query from saved model.")
+flags.DEFINE_boolean("run_training", True, "Set to false to bypass training and query from saved model.")
 flags.DEFINE_boolean("remove_oov", True, "Remove out of vocabulary word labels from training.")
 flags.DEFINE_integer("batch_size", 256, "Number of training examples each step processes.")
 flags.DEFINE_integer("embedding_size", 128, "Embedding dimension size.")
@@ -34,7 +34,7 @@ flags.DEFINE_integer("window_size", 4, "Number of words to predict to the left a
 FLAGS = flags.FLAGS
 
 
-def plot_graph(embeddings, labels, tsne_path):
+def plot_graph(embeddings, labels, path):
     pca = decomposition.PCA(n_components=2)
     pca.fit(embeddings)
     values = pca.transform(embeddings)
@@ -43,7 +43,7 @@ def plot_graph(embeddings, labels, tsne_path):
         x, y = values[i, :]
         plt.scatter(x, y)
         plt.annotate(label, xy=(x, y), xytext=(5, 2), textcoords='offset points', ha='right', va='bottom')
-    plt.savefig(tsne_path)
+    plt.savefig(path)
 
 
 def load(session, data_path, close_op, enqueue_op, queue_inputs, queue_labels):
@@ -92,7 +92,7 @@ def main(_):
     result_embedding = tf.gather(norm_embeddings, top_items)
 
     with tf.Session() as session:
-        if not FLAGS.query:
+        if FLAGS.run_training:
             session.run(tf.global_variables_initializer())
             thread = threading.Thread(target=load, args=(session, data_path, close_op, enqueue_op, q_inputs, q_labels))
             thread.isDaemon()
