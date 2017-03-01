@@ -2,7 +2,7 @@
 Copyright (c) 2016 Robosoup
 www.robosoup.com
 
-Built with Python 3.5.2 and TensorFlow_gpu-0.12
+Built with Python 3.5.3 and TensorFlow GPU 1.0.0
 """
 import collections
 import os.path
