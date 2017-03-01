@@ -11,19 +11,23 @@ import struct
 
 import numpy as np
 
-_RE_APOSTROPHE = re.compile("(')")
-_RE_BREAK = re.compile("[.?!]")
-_RE_DIACRITICS_A = re.compile("([àáâãäå])")
-_RE_DIACRITICS_C = re.compile("(ç)")
-_RE_DIACRITICS_E = re.compile("([èéêë])")
-_RE_DIACRITICS_I = re.compile("([ìíîï])")
-_RE_DIACRITICS_N = re.compile("(ñ)")
-_RE_DIACRITICS_O = re.compile("([òóôõöø])")
-_RE_DIACRITICS_U = re.compile("([ùúûü])")
-_RE_DIACRITICS_Y = re.compile("([ýÿ])")
-_RE_DIGIT = re.compile("[0-9]+")
-_RE_MULTI_SPACE = re.compile("\s\s+")
-_RE_NON_ALPHA = re.compile("([^a-z0-9 ])")
+_RE_BREAK = re.compile("[.?!] ")
+_RE_APOSTROPHE = re.compile("[’']")
+_RE_DIACRITICS_A = re.compile("[àáâãäå]")
+_RE_DIACRITICS_C = re.compile("ç")
+_RE_DIACRITICS_E = re.compile("[èéêë]")
+_RE_DIACRITICS_I = re.compile("[ìíîï]")
+_RE_DIACRITICS_N = re.compile("ñ")
+_RE_DIACRITICS_O = re.compile("[òóôõöø]")
+_RE_DIACRITICS_U = re.compile("[ùúûü]")
+_RE_DIACRITICS_Y = re.compile("[ýÿ]")
+_RE_INITIALS = re.compile("([a-z])\.([a-z])")
+_RE_NON_ALPHA = re.compile("[^a-z0-9 ]")
+_RE_NON_4_DIGIT = re.compile("(^|\s+)[0-9]{1,3}(?=(\s+|$))|(^|\s+)[0-9]{5,}(?=(\s+|$))")
+_RE_NON_YEARS = re.compile("(^|\s+)[03-9][0-9]{3}(?=(\s+|$))")
+_RE_MULTI_NUM = re.compile("<NUM>\s+(?=<NUM>)")
+_RE_NON_A_OR_I = re.compile("(^|\s+)[^ai](?=(\s+|$))")
+_RE_MULTI_SPACE = re.compile("\s{2,}")
 
 _EOS = "<EOS>"
 _UNK = "<UNK>"
@@ -47,7 +51,7 @@ class Iterator(object):
     def __iter__(self):
         inputs = np.ndarray(shape=self.batch_size * self.window * 2, dtype=np.int32)
         labels = np.ndarray(shape=(self.batch_size * self.window * 2, 1), dtype=np.int32)
-        with open(self.token_path, 'rb') as tokens_file:
+        with open(self.token_path, mode='rb') as tokens_file:
             for _ in range(self.span):
                 self.input_buffer.append(struct.unpack('<i', tokens_file.read(4))[0])
             while True:
@@ -66,8 +70,13 @@ class Iterator(object):
 
 
 def clean_text(text):
+    # Convert text to lower case.
     text = text.lower()
+
+    # Remove apostrophes.
     text = _RE_APOSTROPHE.sub("", text)
+
+    # Standardise diacritics.
     text = _RE_DIACRITICS_A.sub("a", text)
     text = _RE_DIACRITICS_C.sub("c", text)
     text = _RE_DIACRITICS_E.sub("e", text)
@@ -76,9 +85,29 @@ def clean_text(text):
     text = _RE_DIACRITICS_O.sub("o", text)
     text = _RE_DIACRITICS_U.sub("u", text)
     text = _RE_DIACRITICS_Y.sub("y", text)
+
+    # Remove full stops between initials.
+    text = _RE_INITIALS.sub("${1}${2}", text)
+
+    # Remove none alpha-numerics and spaces.
     text = _RE_NON_ALPHA.sub(" ", text)
-    text = _RE_DIGIT.sub(" <NUM> ", text)
+
+    # Replace free standing numbers(not 4 in length).
+    text = _RE_NON_4_DIGIT.sub(" <NUM> ", text)
+
+    # Replace 4 digit numbers that are not years in the range 1000 - 2999.
+    text = _RE_NON_YEARS.sub(" <NUM> ", text)
+
+    # Remove repeated numeric markers.
+    text = _RE_MULTI_NUM.sub("", text)
+
+    # Remove single free standing letters (not 'a' or 'i').
+    text = _RE_NON_A_OR_I.sub("", text)
+
+    # Remove multiple spaces.
     text = _RE_MULTI_SPACE.sub(" ", text)
+
+    # Return clean text.
     return text.strip()
 
 
@@ -87,8 +116,8 @@ def create_vocabulary(corpus_path, clean_path, vocab_path, min_occurrence, max_s
     if not os.path.isfile(vocab_path):
         print("creating vocab")
         vocab = {}
-        with open(corpus_path, 'r') as corpus_file:
-            with open(clean_path, 'w') as clean_file:
+        with open(corpus_path, mode='r', encoding='utf8') as corpus_file:
+            with open(clean_path, mode='w') as clean_file:
                 counter = 0
                 for line in corpus_file:
                     counter += 1
@@ -116,7 +145,7 @@ def create_vocabulary(corpus_path, clean_path, vocab_path, min_occurrence, max_s
                 if len(vocab_list) > max_size:
                     vocab_list = vocab_list[:max_size]
                 print("writing vocab to file")
-                with open(vocab_path, 'w') as vocab_file:
+                with open(vocab_path, mode='w') as vocab_file:
                     for w in vocab_list:
                         vocab_file.write(w + "\n")
 
@@ -131,7 +160,7 @@ def reduce_vocab(vocab, threshold):
 def initialise_vocabulary(vocab_path):
     print("initialising vocab")
     rev_vocab = []
-    with open(vocab_path, 'r') as vocab_file:
+    with open(vocab_path, mode='r') as vocab_file:
         rev_vocab.extend(vocab_file.readlines())
     rev_vocab = [line.strip() for line in rev_vocab]
     vocab = dict([(x, y) for (y, x) in enumerate(rev_vocab)])
@@ -141,8 +170,8 @@ def initialise_vocabulary(vocab_path):
 def words_to_tokens(vocab, clean_path, token_path, remove_oov):
     if not os.path.isfile(token_path):
         print("creating tokens")
-        with open(clean_path, 'r') as data_file:
-            with open(token_path, 'wb') as tokens_file:
+        with open(clean_path, mode='r') as data_file:
+            with open(token_path, mode='wb') as tokens_file:
                 counter = 0
                 for line in data_file:
                     counter += 1
