@@ -97,19 +97,16 @@ def main(_):
     result_embedding = tf.gather(norm_embeddings, top_items)
 
     with tf.Session() as session:
-        init = True
         latest_checkpoint = tf.train.latest_checkpoint(model_path)
         if latest_checkpoint is not None:
             tf.train.Saver().restore(session, latest_checkpoint)
             print("Checkpoint loaded")
-            init = False
+        else:
+            session.run(tf.global_variables_initializer())
 
         writer = tf.summary.FileWriter(model_path, graph=session.graph)
 
         if FLAGS.run_training:
-            if init:
-                session.run(tf.global_variables_initializer())
-
             thread = threading.Thread(target=load, args=(session, data_path, close_op, enqueue_op, q_inputs, q_labels))
             thread.isDaemon()
             thread.start()
