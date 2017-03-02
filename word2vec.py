@@ -27,7 +27,7 @@ flags.DEFINE_boolean("remove_oov", True, "Remove out of vocabulary word labels f
 flags.DEFINE_integer("batch_size", 512, "Number of training examples each step processes.")
 flags.DEFINE_integer("embedding_size", 128, "Embedding dimension size.")
 flags.DEFINE_integer("epochs_to_train", 4, "Number of epochs to train.")
-flags.DEFINE_integer("min_occ", 16, "Minimum number of times a word should occur in vocabulary.")
+flags.DEFINE_integer("min_occ", 8, "Minimum number of times a word should occur in vocabulary.")
 flags.DEFINE_integer("max_vocab", 65536, "Maximum size of the vocabulary.")
 flags.DEFINE_integer("num_neg_samples", 8, "Negative samples per training example.")
 flags.DEFINE_integer("window_size", 4, "Number of words to predict to the left and right of the target word.")
@@ -48,7 +48,7 @@ def plot_graph(embeddings, labels, path):
 
 def load(session, data_path, close_op, enqueue_op, queue_inputs, queue_labels):
     global epoch
-    token_path = os.path.join(data_path, "tokens.bin")
+    token_path = os.path.join(data_path, "token.bin")
     for epoch in range(FLAGS.epochs_to_train):
         for batch_inputs, batch_labels in iter(data_utils.Iterator(token_path, FLAGS.batch_size, FLAGS.window_size)):
             session.run(enqueue_op, feed_dict={queue_inputs: batch_inputs, queue_labels: batch_labels})
