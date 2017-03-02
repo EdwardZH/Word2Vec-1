@@ -70,7 +70,7 @@ def __clean_text(text):
 
 def run(corpus_path, clean_path):
     if not os.path.isfile(clean_path):
-        print("creating corpus file")
+        print("creating clean file")
         with open(corpus_path, mode='r', encoding='utf8') as corpus_file:
             with open(clean_path, mode='w') as clean_file:
                 counter = 0
