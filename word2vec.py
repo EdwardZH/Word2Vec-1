@@ -22,7 +22,7 @@ flags.DEFINE_float("learning_rate", 1.0, "Initial learning rate.")
 flags.DEFINE_string("save_path", "model.ckpt", "Base name of checkpoint files.")
 flags.DEFINE_string("train_file", "corpus.txt", "Name of the training data file.")
 flags.DEFINE_boolean("plot", True, "Set to true to plot example pca graph after training.")
-flags.DEFINE_boolean("run_training", True, "Set to false to bypass training and query from saved model.")
+flags.DEFINE_boolean("run_training", False, "Set to false to bypass training and query from saved model.")
 flags.DEFINE_boolean("remove_oov", True, "Remove out of vocabulary word labels from training.")
 flags.DEFINE_integer("batch_size", 512, "Number of training examples each step processes.")
 flags.DEFINE_integer("embedding_size", 128, "Embedding dimension size.")
@@ -92,8 +92,8 @@ def main(_):
     norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
     norm_embeddings = embeddings / norm
     query_embedding = tf.gather(norm_embeddings, query_id)
-    dist = tf.matmul(query_embedding, norm_embeddings, transpose_b=True)
-    top_items = tf.nn.top_k(dist, 8)[1]
+    cosine_similarity = tf.matmul(query_embedding, norm_embeddings, transpose_b=True)
+    top_items = tf.nn.top_k(cosine_similarity, 8)[1]
     result_embedding = tf.gather(norm_embeddings, top_items)
 
     with tf.Session() as session:
@@ -168,9 +168,10 @@ def main(_):
             if word_id == -1:
                 print("Unknown word!")
             else:
-                items = session.run(top_items, {query_id: [word_id]})
-                for item in items.ravel():
-                    print(rev_vocab[item])
+                items, similarity = session.run([top_items, cosine_similarity], {query_id: [word_id]})
+                score = similarity.ravel()
+                for idx in items.ravel():
+                    print("%f %s" % (score[idx], rev_vocab[idx]))
 
 
 if __name__ == "__main__":
