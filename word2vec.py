@@ -18,19 +18,17 @@ import data_utils
 epoch = 0
 
 flags = tf.app.flags
-flags.DEFINE_float("learning_rate", 1.0, "Initial learning rate.")
+flags.DEFINE_float("learning_rate", 0.5, "Initial learning rate.")
 flags.DEFINE_string("save_path", "model.ckpt", "Base name of checkpoint files.")
 flags.DEFINE_string("train_file", "corpus.txt", "Name of the training data file.")
-flags.DEFINE_boolean("plot", True, "Set to true to plot example pca graph after training.")
-flags.DEFINE_boolean("run_training", True, "Set to false to bypass training and query from saved model.")
-flags.DEFINE_boolean("remove_oov", True, "Remove out of vocabulary word labels from training.")
 flags.DEFINE_integer("batch_size", 512, "Number of training examples each step processes.")
 flags.DEFINE_integer("embedding_size", 128, "Embedding dimension size.")
 flags.DEFINE_integer("epochs_to_train", 4, "Number of epochs to train.")
-flags.DEFINE_integer("min_occ", 8, "Minimum number of times a word should occur in vocabulary.")
-flags.DEFINE_integer("max_vocab", 65536, "Maximum size of the vocabulary.")
+flags.DEFINE_integer("max_vocab", 100000, "Maximum size of the vocabulary.")
 flags.DEFINE_integer("num_neg_samples", 8, "Negative samples per training example.")
 flags.DEFINE_integer("window_size", 4, "Number of words to predict to the left and right of the target word.")
+flags.DEFINE_boolean("run_training", True, "Set to false to bypass training and query from saved model.")
+flags.DEFINE_boolean("plot", True, "Set to true to plot example pca graph after training.")
 FLAGS = flags.FLAGS
 
 
@@ -63,7 +61,7 @@ def main(_):
         os.mkdir(model_path)
     plot_path = os.path.join(model_path, "plot.png")
     checkpoint = os.path.join(model_path, FLAGS.save_path)
-    vocab, rev_vocab = data_utils.prepare(data_path, FLAGS.min_occ, FLAGS.max_vocab, FLAGS.remove_oov, FLAGS.train_file)
+    vocab, rev_vocab = data_utils.prepare(data_path, FLAGS.max_vocab, FLAGS.train_file)
     vocab_size = len(vocab)
 
     # Add queue ops to graph.
@@ -157,8 +155,8 @@ def main(_):
             array = []
             for word_id in seed_ids:
                 ids, r_embeddings = session.run([top_items, result_embedding], {query_id: [word_id]})
-                for id in ids.ravel():
-                    labels.append(rev_vocab[id])
+                for i in ids.ravel():
+                    labels.append(rev_vocab[i])
                 for e in r_embeddings:
                     array.extend(e)
             plot_graph(array, labels, plot_path)
@@ -171,8 +169,8 @@ def main(_):
             else:
                 ids, similarity = session.run([top_items, cosine_similarity], {query_id: [word_id]})
                 score = similarity.ravel()
-                for id in ids.ravel():
-                    print("%f %s" % (score[id], rev_vocab[id]))
+                for i in ids.ravel():
+                    print("%f %s" % (score[i], rev_vocab[i]))
 
 
 if __name__ == "__main__":

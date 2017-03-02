@@ -8,17 +8,13 @@ import os.path
 import struct
 
 __EOS_ID = 0
-__UNK_ID = 1
 
 
-def __encode_line(vocab, line, remove_oov):
-    if not remove_oov:
-        return [vocab.get(word, __UNK_ID) for word in [w for w in line.strip().split()]]
-    else:
-        return [t for t in [vocab.get(word, -1) for word in [w for w in line.strip().split()]] if t > -1]
+def __encode_line(vocab, line):
+    return [t for t in [vocab.get(word, -1) for word in [w for w in line.strip().split()]] if t > -1]
 
 
-def run(vocab, phrase_path, token_path, remove_oov):
+def run(vocab, phrase_path, token_path):
     if not os.path.isfile(token_path):
         print("creating token file")
         with open(phrase_path, mode='r') as phrase_file:
@@ -28,7 +24,7 @@ def run(vocab, phrase_path, token_path, remove_oov):
                     counter += 1
                     if counter % 100000 == 0:
                         print("processing line %d" % counter)
-                    tokens = __encode_line(vocab, line, remove_oov)
+                    tokens = __encode_line(vocab, line)
                     tokens.append(__EOS_ID)
                     for token in tokens:
                         tokens_file.write(struct.pack('<i', token))

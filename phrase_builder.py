@@ -8,19 +8,32 @@ import os.path
 
 __threshold = 100
 __train_word_count = 0
+__max_working_size = int(1e6)
+__cull_level = 1
 __vocab = {}
 
 
-def __learn(clean_path, min_occurrence):
+def __reduce_vocab():
+    global __cull_level
+    while len(__vocab) > __max_working_size:
+        __cull_level += 1
+        print("reducing vocab below %d" % __cull_level)
+        for k, v in list(__vocab.items()):
+            if v < __cull_level:
+                del __vocab[k]
+    __cull_level -= 1
+
+def __learn(clean_path):
     global __train_word_count
     print("learning phrases")
     with open(clean_path, mode='r') as clean_file:
-        max_working_size = int(1e6)
         counter = 0
         for line in clean_file:
             counter += 1
             if counter % 100000 == 0:
                 print("processing line %d" % counter)
+                if len(__vocab) > __max_working_size:
+                    __reduce_vocab()
             last_word = None
             for word in [w for w in line.strip().split()]:
                 __train_word_count += 1
@@ -35,12 +48,10 @@ def __learn(clean_path, min_occurrence):
                     else:
                         __vocab[bigram] = 1
                 last_word = word
-            if len(__vocab) > max_working_size:
-                __reduce_vocab(min_occurrence)
-        __reduce_vocab(min_occurrence)
+    __reduce_vocab()
 
 
-def __save(clean_path, phrase_path, min_occurrence):
+def __save(clean_path, phrase_path):
     global __train_word_count
     print("creating phrase file")
     with open(clean_path, mode='r') as clean_file:
@@ -73,7 +84,7 @@ def __save(clean_path, phrase_path, min_occurrence):
                     score = 0
 
                     if not oov:
-                        score = (bigram_count - min_occurrence) / last_word_count / word_count * __train_word_count
+                        score = (bigram_count - __cull_level) / last_word_count / word_count * __train_word_count
 
                     if score > __threshold:
                         phrase_file.write('_' + word)
@@ -86,14 +97,7 @@ def __save(clean_path, phrase_path, min_occurrence):
                 phrase_file.write('\n')
 
 
-def __reduce_vocab(min_occurrence):
-    print("reducing vocab")
-    for k, v in list(__vocab.items()):
-        if v < min_occurrence:
-            del __vocab[k]
-
-
-def run(clean_path, phrase_path, min_occurrence):
+def run(clean_path, phrase_path):
     if not os.path.isfile(phrase_path):
-        __learn(clean_path, min_occurrence)
-        __save(clean_path, phrase_path, min_occurrence)
+        __learn(clean_path)
+        __save(clean_path, phrase_path)

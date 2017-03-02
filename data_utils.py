@@ -54,15 +54,15 @@ def __load_vocab(vocab_path):
     return vocab, rev_vocab
 
 
-def prepare(data_path, min_occurrence, max_vocab_size, remove_oov, corpus_file):
+def prepare(data_path, max_vocab_size, corpus_file):
     corpus_path = os.path.join(data_path, corpus_file)
     clean_path = os.path.join(data_path, "clean.txt")
     phrase_path = os.path.join(data_path, "phrase.txt")
     vocab_path = os.path.join(data_path, "vocab.txt")
     token_path = os.path.join(data_path, "token.bin")
     clean_builder.run(corpus_path, clean_path)
-    phrase_builder.run(clean_path, phrase_path, min_occurrence)
-    vocab_builder.run(phrase_path, vocab_path, min_occurrence, max_vocab_size, remove_oov)
+    phrase_builder.run(clean_path, phrase_path)
+    vocab_builder.run(phrase_path, vocab_path, max_vocab_size)
     vocab, rev_vocab = __load_vocab(vocab_path)
-    token_builder.run(vocab, phrase_path, token_path, remove_oov)
+    token_builder.run(vocab, phrase_path, token_path)
     return vocab, rev_vocab

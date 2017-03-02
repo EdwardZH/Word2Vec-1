@@ -5,46 +5,43 @@ www.robosoup.com
 Built with Python 3.5.3 and TensorFlow GPU 1.0.0
 """
 import os.path
+import sys
 
-__EOS = "<EOS>"
-__UNK = "<UNK>"
-__NUM = "<NUM>"
-__START_VOCAB = [__EOS, __UNK, __NUM]
-
-
-def __reduce_vocab(vocab, threshold):
-    print("reducing vocab")
-    for k, v in list(vocab.items()):
-        if v < threshold:
-            del vocab[k]
+__max_working_size = int(1e6)
+__cull_level = 2
+__vocab = {}
 
 
-def run(phrase_path, vocab_path, min_occurrence, max_size, remove_oov):
+def __reduce_vocab():
+    global __cull_level
+    __cull_level -= 1
+    while len(__vocab) > __max_working_size:
+        __cull_level += 1
+        print("reducing vocab below %d" % __cull_level)
+        for k, v in list(__vocab.items()):
+            if v < __cull_level:
+                del __vocab[k]
+
+
+def run(phrase_path, vocab_path, max_size):
     if not os.path.isfile(vocab_path):
         print("creating vocab file")
-        vocab = {}
-        max_working_size = int(1e6)
+        __vocab["<EOS>"] = sys.maxsize
         with open(phrase_path, mode='r') as phrase_file:
             counter = 0
             for line in phrase_file:
                 counter += 1
                 if counter % 100000 == 0:
                     print("processing line %d" % counter)
+                    if len(__vocab) > __max_working_size:
+                        __reduce_vocab()
                 for word in [w for w in line.split()]:
-                    if word in vocab:
-                        vocab[word] += 1
+                    if word in __vocab:
+                        __vocab[word] += 1
                     else:
-                        vocab[word] = 1
-                if len(vocab) > max_working_size:
-                    __reduce_vocab(vocab, min_occurrence)
-            if __NUM in vocab:
-                del vocab[__NUM]
-            __reduce_vocab(vocab, min_occurrence)
+                        __vocab[word] = 1
             print("finalising vocab")
-            if remove_oov:
-                vocab_list = sorted(vocab, key=vocab.get, reverse=True)
-            else:
-                vocab_list = __START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
+            vocab_list = sorted(__vocab, key=__vocab.get, reverse=True)
             if len(vocab_list) > max_size:
                 vocab_list = vocab_list[:max_size]
             print("writing vocab to file")
