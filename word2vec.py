@@ -22,7 +22,7 @@ flags.DEFINE_float("learning_rate", 1.0, "Initial learning rate.")
 flags.DEFINE_string("save_path", "model.ckpt", "Base name of checkpoint files.")
 flags.DEFINE_string("train_file", "corpus.txt", "Name of the training data file.")
 flags.DEFINE_boolean("plot", True, "Set to true to plot example pca graph after training.")
-flags.DEFINE_boolean("run_training", False, "Set to false to bypass training and query from saved model.")
+flags.DEFINE_boolean("run_training", True, "Set to false to bypass training and query from saved model.")
 flags.DEFINE_boolean("remove_oov", True, "Remove out of vocabulary word labels from training.")
 flags.DEFINE_integer("batch_size", 512, "Number of training examples each step processes.")
 flags.DEFINE_integer("embedding_size", 128, "Embedding dimension size.")
@@ -149,15 +149,15 @@ def main(_):
             seeds = ("berlin", "john", "november", "cancer", "blue", "school")
             seed_ids = []
             for seed in seeds:
-                seed_id = vocab.get(seed, -1)
-                if seed_id != -1:
-                    seed_ids.append(seed_id)
+                word_id = vocab.get(seed, -1)
+                if word_id != -1:
+                    seed_ids.append(word_id)
             labels = []
             array = []
-            for seed_id in seed_ids:
-                r_ids, r_embeddings = session.run([top_items, result_embedding], {query_id: [seed_id]})
-                for i in r_ids.ravel():
-                    labels.append(rev_vocab[i])
+            for word_id in seed_ids:
+                ids, r_embeddings = session.run([top_items, result_embedding], {query_id: [word_id]})
+                for id in ids.ravel():
+                    labels.append(rev_vocab[id])
                 for e in r_embeddings:
                     array.extend(e)
             plot_graph(array, labels, plot_path)
@@ -168,10 +168,10 @@ def main(_):
             if word_id == -1:
                 print("Unknown word!")
             else:
-                items, similarity = session.run([top_items, cosine_similarity], {query_id: [word_id]})
+                ids, similarity = session.run([top_items, cosine_similarity], {query_id: [word_id]})
                 score = similarity.ravel()
-                for idx in items.ravel():
-                    print("%f %s" % (score[idx], rev_vocab[idx]))
+                for id in ids.ravel():
+                    print("%f %s" % (score[id], rev_vocab[id]))
 
 
 if __name__ == "__main__":
