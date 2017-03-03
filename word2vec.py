@@ -19,14 +19,13 @@ epoch = 0
 
 flags = tf.app.flags
 flags.DEFINE_float("learning_rate", 0.5, "Initial learning rate.")
-flags.DEFINE_string("save_path", "model.ckpt", "Base name of checkpoint files.")
 flags.DEFINE_string("train_file", "corpus.txt", "Name of the training data file.")
 flags.DEFINE_integer("batch_size", 512, "Number of training examples each step processes.")
 flags.DEFINE_integer("embedding_size", 128, "Embedding dimension size.")
 flags.DEFINE_integer("epochs_to_train", 4, "Number of epochs to train.")
 flags.DEFINE_integer("max_vocab", 100000, "Maximum size of the vocabulary.")
-flags.DEFINE_integer("num_neg_samples", 8, "Negative samples per training example.")
-flags.DEFINE_integer("window_size", 4, "Number of words to predict to the left and right of the target word.")
+flags.DEFINE_integer("num_neg_samples", 5, "Negative samples per training example.")
+flags.DEFINE_integer("window_size", 5, "Number of words to predict to the left and right of the target word.")
 flags.DEFINE_boolean("run_training", True, "Set to false to bypass training and query from saved model.")
 flags.DEFINE_boolean("plot", True, "Set to true to plot example pca graph after training.")
 FLAGS = flags.FLAGS
@@ -60,13 +59,13 @@ def main(_):
     if not os.path.exists(model_path):
         os.mkdir(model_path)
     plot_path = os.path.join(model_path, "plot.png")
-    checkpoint = os.path.join(model_path, FLAGS.save_path)
+    checkpoint = os.path.join(model_path, "model.ckpt")
     vocab, rev_vocab = data_utils.prepare(data_path, FLAGS.max_vocab, FLAGS.train_file)
     vocab_size = len(vocab)
 
     # Add queue ops to graph.
-    q_inputs = tf.placeholder(tf.int32, shape=(FLAGS.batch_size * FLAGS.window_size * 2), name="inputs")
-    q_labels = tf.placeholder(tf.int32, shape=(FLAGS.batch_size * FLAGS.window_size * 2, 1), name="labels")
+    q_inputs = tf.placeholder(tf.int32, shape=(FLAGS.batch_size * FLAGS.window_size), name="inputs")
+    q_labels = tf.placeholder(tf.int32, shape=(FLAGS.batch_size * FLAGS.window_size, 1), name="labels")
     queue = tf.FIFOQueue(50, [tf.int32, tf.int32], name="fifo_queue")
     close_op = queue.close()
     enqueue_op = queue.enqueue([q_inputs, q_labels])
@@ -145,7 +144,7 @@ def main(_):
                 writer.close()
 
         if FLAGS.plot:
-            seeds = ("berlin", "john", "november", "cancer", "blue", "school")
+            seeds = ("berlin", "john", "november", "cancer", "blue", "steel")
             seed_ids = []
             for seed in seeds:
                 word_id = vocab.get(seed, -1)
