@@ -144,7 +144,7 @@ def main(_):
                 writer.close()
 
         if FLAGS.plot:
-            seeds = ("berlin", "john", "november", "cancer", "blue", "steel")
+            seeds = ("john", "mary", "london", "united_kingdom", "microsoft", "barack_obama")
             seed_ids = []
             for seed in seeds:
                 word_id = vocab.get(seed, -1)
