@@ -6,6 +6,7 @@ Built with Python 3.5.3 and TensorFlow GPU 1.0.0
 """
 import os
 
+import numpy as np
 import pandas as pd
 import tensorflow as tf
 
@@ -43,6 +44,8 @@ def main(_):
         xs.append(vocab.get(row[0], -1))
     ys = (data[:, 1:])
     no_of_rows = len(xs)
+    y_negs = np.array([np.array([0, 0, 0, 0, 0, 0, 0, 1]), ] * no_of_rows)
+    ys = np.concatenate((ys, y_negs), axis=0)
 
     keep_prob = tf.Variable(0.5, trainable=False)
     embeddings = tf.Variable(tf.zeros([vocab_size, embedding_size]), trainable=False, name="embeddings")
@@ -69,9 +72,9 @@ def main(_):
         saver.restore(session, latest_checkpoint)
 
         for i in range(25000):
-            avg_loss = session.run([train_op, loss], {x_id: xs, y_: ys})[1]
+            x_negs = np.random.randint(vocab_size, size=no_of_rows)
+            avg_loss = session.run([train_op, loss], {x_id: np.concatenate((xs, x_negs), axis=0), y_: ys})[1]
             print(avg_loss / no_of_rows)
-        print("done training")
 
         candidate = {}
         session.run(tf.assign(keep_prob, 1.0))
@@ -79,7 +82,7 @@ def main(_):
             word_id = vocab.get(word, -1)
             vals = session.run(y2, {x_id: [word_id]})[0]
             best_val = vals[:no_of_classes - 1].argmax(axis=0)
-            if vals[best_val] > 0.95:
+            if vals[best_val] > 0.85:
                 if word not in exclude:
                     candidate[class_name[best_val] + ": " + word] = vals[best_val]
     candidate_list = sorted(candidate, key=candidate.get, reverse=True)
