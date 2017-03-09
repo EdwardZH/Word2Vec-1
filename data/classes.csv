@@ -1,4 +1,5 @@
 word,city,country,county,region,first_name,last_name,person,relation
+abdul,0,0,0,0,1,0,0,0
 aberdeen,1,0,0,0,0,0,0,0
 abraham,0,0,0,0,1,0,0,0
 abraham_lincoln,0,0,0,0,0,0,1,0
@@ -261,7 +262,8 @@ jones,0,0,0,0,0,1,0,0
 joseph,0,0,0,0,1,0,0,0
 julie,0,0,0,0,1,0,0,0
 julius_caesar,0,0,0,0,0,0,1,0
-kelly,0,0,0,0,0,1,0,0
+kate,0,0,0,0,1,0,0,0
+kelly,0,0,0,0,1,1,0,0
 kent,0,0,1,0,0,0,0,0
 khan,0,0,0,0,0,1,0,0
 king,0,0,0,0,0,1,0,0
@@ -272,12 +274,12 @@ lancashire,0,0,1,0,0,0,0,0
 lancaster,1,0,0,0,0,0,0,0
 le_mans,1,0,0,0,0,0,0,0
 lebanon,0,1,0,0,0,0,0,0
-lee,0,0,0,0,0,1,0,0
+lee,0,0,0,0,1,1,0,0
 leeds,1,0,0,0,0,0,0,0
 leicester,1,0,0,0,0,0,0,0
 leicestershire,0,0,1,0,0,0,0,0
 leon_trotsky,0,0,0,0,0,0,1,0
-lewis,0,0,0,0,1,0,0,0
+lewis,0,0,0,0,1,1,0,0
 lichfield,1,0,0,0,0,0,0,0
 lincoln,1,0,0,0,0,1,0,0
 lincolnshire,0,0,1,0,0,0,0,0

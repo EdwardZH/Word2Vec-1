@@ -22,8 +22,8 @@ flags.DEFINE_float("learning_rate", 0.5, "Initial learning rate.")
 flags.DEFINE_string("train_file", "corpus.txt", "Name of the training data file.")
 flags.DEFINE_integer("batch_size", 512, "Number of training examples each step processes.")
 flags.DEFINE_integer("embedding_size", 128, "Embedding dimension size.")
-flags.DEFINE_integer("epochs_to_train", 4, "Number of epochs to train.")
-flags.DEFINE_integer("max_vocab", 100000, "Maximum size of the vocabulary.")
+flags.DEFINE_integer("epochs_to_train", 3, "Number of epochs to train.")
+flags.DEFINE_integer("max_vocab", 125000, "Maximum size of the vocabulary.")
 flags.DEFINE_integer("num_neg_samples", 5, "Negative samples per training example.")
 flags.DEFINE_integer("window_size", 5, "Number of words to predict to the left and right of the target word.")
 flags.DEFINE_boolean("run_training", True, "Set to false to bypass training and query from saved model.")
@@ -72,9 +72,9 @@ def main(_):
 
     # Add training ops to graph.
     inputs, labels = queue.dequeue()
-    embeddings = tf.Variable(tf.random_uniform([vocab_size, FLAGS.embedding_size], -1.0, 1.0), name="embeddings")
+    embeddings = tf.Variable(tf.random_uniform([vocab_size, FLAGS.embedding_size], -0.5, 0.5), name="embeddings")
     lookup = tf.nn.embedding_lookup(embeddings, inputs, name="lookup")
-    weights = tf.Variable(tf.random_uniform([vocab_size, FLAGS.embedding_size], -1.0, 1.0), name="nce_weights")
+    weights = tf.Variable(tf.random_uniform([vocab_size, FLAGS.embedding_size], -0.5, 0.5), name="nce_weights")
     biases = tf.Variable(tf.zeros([vocab_size]), name="biases")
     nce_loss = tf.nn.nce_loss(weights, biases, labels, lookup, FLAGS.num_neg_samples, vocab_size, name="nce_loss")
     loss = tf.reduce_mean(nce_loss)
@@ -138,9 +138,11 @@ def main(_):
 
                     if batch % 500000 == 0:
                         tf.train.Saver().save(session, checkpoint, global_step=global_step)
+                        print("saving checkpoint")
 
             except tf.errors.OutOfRangeError:
                 tf.train.Saver().save(session, checkpoint, global_step=global_step)
+                print("saving checkpoint")
                 writer.close()
 
         if FLAGS.plot:
